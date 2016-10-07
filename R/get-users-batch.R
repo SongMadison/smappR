@@ -52,7 +52,7 @@ getUsersBatch <- function(ids=NULL, screen_names=NULL, oauth_folder, include_ent
     ids.tmp <- sample(left.ids, min(c(100, length(left.ids))))
     
     while (limit ==0 ){
-      sleep(60)
+      Sys.sleep(60)
       limit <- getLimitLookupUsers(my_oauth) 
     }
     
