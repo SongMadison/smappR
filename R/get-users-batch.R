@@ -43,15 +43,27 @@ getUsersBatch <- function(ids=NULL, screen_names=NULL, oauth_folder, include_ent
   if (!is.null(output)){ conn = file(output, 'w')}
   users.df <- list()
   i <- 1
+  limit <- getLimitLookupUsers(my_oauth) ## outside the loop
   while (length(left.ids)>0){
+    
     message(i, "--", length(left.ids), ' users left')
+    message("--", limit," users/lookup left ")
+    
     ids.tmp <- sample(left.ids, min(c(100, length(left.ids))))
+    
+    while (limit ==0 ){
+      sleep(60)
+      limit <- getLimitLookupUsers(my_oauth) 
+    }
+    
 
     if (!is.null(ids)){
+      limit <- limit -1
       error <- tryCatch(tmp <- getUsers( oauth_folder, id = ids.tmp, include_entities=include_entities),
                         error = function(e) e)
     }
     if (!is.null(screen_names)){
+      limit <- limit -1 
       error <- tryCatch(tmp <- getUsers( oauth_folder,
                                          screen_names = ids.tmp, include_entities=include_entities),
                         error = function(e) e)
@@ -84,4 +96,37 @@ getUsersBatch <- function(ids=NULL, screen_names=NULL, oauth_folder, include_ent
   users.df <- do.call(rbind, users.df)
   if (!is.null(output)){ close(conn) }
   return(users.df)
+}
+
+
+getLimitLookupUsers <- function(my_oauth){
+  url <- "https://api.twitter.com/1.1/application/rate_limit_status.json"
+  params <- list(resources = "users,application")
+  response <- my_oauth$OAuthRequest(URL=url, params = params, method="GET", 
+                                    cainfo=system.file("CurlSSL", "cacert.pem", package = "RCurl"))
+  return(unlist(rjson::fromJSON(response)$resources$users$`/users/lookup`[['remaining']]))
+}
+
+
+unlistWithNA <- function(lst, field){
+  if (length(field)==1){
+    notnulls <- unlist(lapply(lst, function(x) !is.null(x[[field]])))
+    vect <- rep(NA, length(lst))
+    vect[notnulls] <- unlist(lapply(lst, '[[', field))
+  }
+  if (length(field)==2){
+    notnulls <- unlist(lapply(lst, function(x) tryCatch(!is.null(x[[field[1]]][[field[2]]]),
+                                                        error=function(e) FALSE)))
+    vect <- rep(NA, length(lst))
+    values <- unlist(lapply(lst[notnulls], function(x) x[[field[1]]][[field[2]]]))
+    if (length(values)>0) { vect[notnulls] <- values }
+  }
+  if (length(field)==3){
+    notnulls <- unlist(lapply(lst, function(x) 
+      tryCatch(!is.null(x[[field[1]]][[field[2]]][[field[3]]]), 
+               error=function(e) FALSE)))
+    vect <- rep(NA, length(lst))
+    vect[notnulls] <- unlist(lapply(lst[notnulls], function(x) x[[field[1]]][[field[2]]][[field[3]]]))
+  }
+  return(vect)
 }

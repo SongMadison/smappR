@@ -87,3 +87,25 @@ searchUsers <- function(q=NULL, count=100, oauth_folder, verbose=TRUE){
 }
 
 
+unlistWithNA <- function(lst, field){
+  if (length(field)==1){
+    notnulls <- unlist(lapply(lst, function(x) !is.null(x[[field]])))
+    vect <- rep(NA, length(lst))
+    vect[notnulls] <- unlist(lapply(lst, '[[', field))
+  }
+  if (length(field)==2){
+    notnulls <- unlist(lapply(lst, function(x) tryCatch(!is.null(x[[field[1]]][[field[2]]]),
+                                                        error=function(e) FALSE)))
+    vect <- rep(NA, length(lst))
+    values <- unlist(lapply(lst[notnulls], function(x) x[[field[1]]][[field[2]]]))
+    if (length(values)>0) { vect[notnulls] <- values }
+  }
+  if (length(field)==3){
+    notnulls <- unlist(lapply(lst, function(x) 
+      tryCatch(!is.null(x[[field[1]]][[field[2]]][[field[3]]]), 
+               error=function(e) FALSE)))
+    vect <- rep(NA, length(lst))
+    vect[notnulls] <- unlist(lapply(lst[notnulls], function(x) x[[field[1]]][[field[2]]][[field[3]]]))
+  }
+  return(vect)
+}
