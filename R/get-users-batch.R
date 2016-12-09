@@ -37,19 +37,29 @@
 #'
 
 getUsersBatch <- function(ids=NULL, screen_names=NULL, oauth_folder, include_entities="false",
-                          verbose=TRUE, output=NULL){
+                          verbose=TRUE, output=NULL, random =F){
 
   left.ids <- if (is.null(ids)) {screen_names} else {ids}
   if (!is.null(output)){ conn = file(output, 'w')}
   users.df <- list()
   i <- 1
+  
+  creds <- list.files(oauth_folder, full.names=T)
+  ## open a random credential
+  cr <- sample(creds, 1)
+  if (verbose) message(cr, "\n")
+  load(cr)
   limit <- getLimitLookupUsers(my_oauth) ## outside the loop
   while (length(left.ids)>0){
     
     message(i, "--", length(left.ids), ' users left')
     message("--", limit," users/lookup left ")
     
-    ids.tmp <- sample(left.ids, min(c(100, length(left.ids))))
+    if (random == TRUE){
+      ids.tmp <- sample(left.ids, min(c(100, length(left.ids))))
+    }else{
+      ids.tmp <- left.ids[1 : min(100, length(left.ids))]
+    }
     
     while (limit ==0 ){
       Sys.sleep(60)
